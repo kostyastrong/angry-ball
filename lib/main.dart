@@ -77,7 +77,8 @@ class MyGame extends FlameGame with DragCallbacks {
   @override
   Future<void> update(double dt) async {
     Vector2 force = engine.getForceQuadratic(ballEngine.speed, ballEngine.mass);
-    ballEngine.speed += force.scaled(1 / ballEngine.mass) * dt * 50;
+    ballEngine.speed +=
+        force.scaled(1 / ballEngine.mass) * dt * 50; // todo: remove 50
     ball.move(ballEngine.speed.scaled(dt));
     super.update(dt);
   }
@@ -118,7 +119,7 @@ class VectorForce extends PositionComponent {
     super.render(canvas);
     if (visible) {
       print("${position.x}");
-      final p1 = Offset(0.0, 0.0); // wtf
+      const p1 = Offset(0.0, 0.0); // wtf
       final p2 = p1 + Offset(vector.x, vector.y);
       canvas.drawLine(
           p1,
