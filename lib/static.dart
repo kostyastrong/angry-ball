@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 
 class Ground extends PositionComponent {
   late final Vector2 screen;
-  final ballRadius;
-  final thickness;
+  final double ballRadius;
+  final double thickness; // thickness of line of ground itself
 
   Ground(
       {required this.thickness, required this.screen, required this.ballRadius})

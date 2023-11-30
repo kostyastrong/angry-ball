@@ -1,8 +1,8 @@
 import 'package:flame/components.dart';
 
-class BallEngine {
+class BallEngine extends Component {
   Vector2 speed = Vector2.zero();
-  Vector2 position = Vector2.zero();
+  Vector2 position = Vector2.zero(); // position in real life
   final double mass;
 
   BallEngine({required this.mass});

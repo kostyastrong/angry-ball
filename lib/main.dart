@@ -1,13 +1,19 @@
+import 'dart:math';
+
 import 'package:angry_ball/static.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'engines.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(ProviderScope(
+    child: MyApp(),
+  ));
 }
 
 class MyApp extends StatelessWidget {
@@ -28,8 +34,9 @@ class MyApp extends StatelessWidget {
 class MyGame extends FlameGame with DragCallbacks {
   late final Ball ball;
   late final VectorForce vectorForce;
-  late final BallEngine ballEngine = BallEngine(mass: 1);
-  final ForceEngine engine = ForceEngine(linear: 0, quadratic: 0); // 1 kg
+  late final DigitsAngle digitsAngle;
+  late final BallEngine ballEngine = BallEngine(mass: 1); // 1 kg
+  final ForceEngine engine = ForceEngine(linear: 0, quadratic: 0);
   late Vector2 startPosition;
   late Vector2 endPosition;
 
@@ -43,17 +50,20 @@ class MyGame extends FlameGame with DragCallbacks {
     ball.defaultPosition = Vector2(size.x * 0.05, size.y * 0.3);
     ball.xMax = size.x;
     vectorForce = VectorForce(thickness: forceWidth);
+    digitsAngle = DigitsAngle();
 
-    await add(vectorForce);
     add(ball);
     await add(Ground(
         thickness: groundWidth, screen: size, ballRadius: ballRadius / 2));
+    await add(vectorForce);
+    await add(digitsAngle);
   }
 
   @override
   void onDragStart(DragStartEvent event) {
     super.onDragStart(event);
     startPosition = event.canvasPosition;
+    vectorForce.visible = true;
   }
 
   @override
@@ -61,16 +71,16 @@ class MyGame extends FlameGame with DragCallbacks {
     endPosition = event.canvasPosition;
     Vector2 vector = endPosition - startPosition;
     vectorForce.vector = vector.scaled(-0.2);
-    vectorForce.position = ball.position;
-    vectorForce.visible = true;
   }
 
   @override
   void onDragEnd(DragEndEvent event) {
     super.onDragEnd(event);
-    Vector2 initForce = endPosition - startPosition;
+    Vector2 initSpeed = endPosition - startPosition;
+    // initSpeed.scale(1 / 50);
+    print(initSpeed.length);
     // initForce.scale(1 / initForce.length);
-    ballEngine.speed = -initForce;
+    ballEngine.speed = -initSpeed;
     vectorForce.visible = false;
   }
 
@@ -107,18 +117,23 @@ class Ball extends CircleComponent {
   }
 }
 
-class VectorForce extends PositionComponent {
+class VectorForce extends PositionComponent with HasGameRef<MyGame> {
   bool visible = false;
-  late Vector2 vector;
-  final thickness;
+  Vector2 vector = Vector2.zero();
+  final double thickness;
 
   VectorForce({required this.thickness});
+
+  @override
+  void update(double dt) {
+    position = gameRef.ball.position;
+    super.update(dt);
+  }
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
     if (visible) {
-      print("${position.x}");
       const p1 = Offset(0.0, 0.0); // wtf
       final p2 = p1 + Offset(vector.x, vector.y);
       canvas.drawLine(
@@ -129,4 +144,43 @@ class VectorForce extends PositionComponent {
             ..strokeWidth = thickness);
     } // If not visible none of the children will be rendered
   }
+}
+
+class DigitsAngle extends TextComponent with HasGameRef<MyGame> {
+  bool visible = false;
+  int visibleNumber = 15;
+  TextPaint textPaint = TextPaint(
+    style: TextStyle(
+      fontSize: 48.0,
+      fontFamily: 'Awesome Font',
+    ),
+  );
+
+  @override
+  void render(Canvas canvas) {
+    if (visible) {
+      super.render(canvas);
+    }
+  }
+
+  (bool, int) getPushAngle() {
+    // Ox = true => positive projection of Push is positive
+    int val =
+        gameRef.vectorForce.vector.angleTo(Vector2(1, 0)) * 360 ~/ (2 * pi);
+    bool Ox = val < 90;
+    return (Ox, Ox ? val : 180 - val);
+  }
+
+  @override
+  void update(double dt) {
+    var (Ox, angleNumber) = getPushAngle();
+    position = gameRef.ball.position +
+        Vector2(0, -5) +
+        Vector2(20, 0).scaled(Ox ? 1 : -1);
+    visible = gameRef.vectorForce.visible &&
+        gameRef.vectorForce.vector.length > visibleNumber;
+    text = angleNumber.toString();
+  }
+
+  DigitsAngle() : super(anchor: Anchor.center);
 }

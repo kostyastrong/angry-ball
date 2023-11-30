@@ -44,7 +44,7 @@ class DataBasePrefs implements IDataBase {
       }
 
       return value as T;
-    } catch (e, s) {
+    } catch (e) {
       return defaultValue;
     }
   }
