@@ -1,17 +1,3 @@
 # angry_ball
-
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-# angry-ball
+Current functionality
+![angry_ball_v1](https://github.com/kostyastrong/angry-ball/assets/69136524/9e1c83ba-c0db-4c2c-92fb-d30e7ff17432)
