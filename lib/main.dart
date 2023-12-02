@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'engines.dart';
+import 'metrics.dart';
 
 void main() {
   runApp(ProviderScope(
@@ -37,7 +38,7 @@ class MyGame extends FlameGame with DragCallbacks {
   late final VectorForce vectorForce;
   late final DigitsAngle digitsAngle;
   late final BallEngine ballEngine = BallEngine(mass: WorldConfig.ballMass);
-  final ForceEngine engine = ForceEngine(linear: 1, quadratic: 0);
+  final ForceEngine engine = ForceEngine(linear: 3, quadratic: 0);
   late Vector2 startPosition;
   late Vector2 endPosition;
   late LaunchSpeed launchSpeed;
@@ -45,9 +46,7 @@ class MyGame extends FlameGame with DragCallbacks {
   late TheoreticalDistance theoreticalDistance;
   late FlightDistance flightDistance;
 
-  @override
-  Future<void> onLoad() async {
-    Flame.device.setPortrait();
+  Future<void> initObjects() async {
     const ballRadius = 5.0;
     const groundWidth = 5.0;
     const forceWidth = 1.0;
@@ -65,14 +64,21 @@ class MyGame extends FlameGame with DragCallbacks {
     theoreticalDistance =
         TheoreticalDistance(position: Vector2(size.x * 0.1, size.y * 0.8));
 
+    await add(Ground(
+        thickness: groundWidth, screen: size, ballRadius: ballRadius / 2));
+  }
+
+  @override
+  Future<void> onLoad() async {
+    Flame.device.setPortrait();
+    initObjects();
+
     add(ballEngine);
     add(ball);
     add(launchSpeed);
     add(actualDistance);
     add(flightDistance);
     add(theoreticalDistance);
-    await add(Ground(
-        thickness: groundWidth, screen: size, ballRadius: ballRadius / 2));
     await add(vectorForce);
     await add(digitsAngle);
   }
@@ -82,7 +88,6 @@ class MyGame extends FlameGame with DragCallbacks {
     super.onDragStart(event);
     startPosition = event.canvasPosition;
     vectorForce.visible = true;
-    actualDistance.startX = ballEngine.position.x;
   }
 
   @override
@@ -102,12 +107,12 @@ class MyGame extends FlameGame with DragCallbacks {
 
   @override
   void onDragEnd(DragEndEvent event) {
+    actualDistance.startX = ballEngine.position.x;
     Vector2 initSpeed = (endPosition - startPosition)
         .scaled(1 / size.length)
         .scaled(WorldConfig.ballMaxSpeed);
     // we don't reverse y because endPosition.y > startPosition.y
     initSpeed.x = -initSpeed.x;
-    print(initSpeed.length);
     ballEngine.speed = initSpeed;
     vectorForce.visible = false;
     flightDistance.landed = false;
@@ -165,7 +170,7 @@ class VectorForce extends PositionComponent with HasGameRef<MyGame> {
 }
 
 class DigitsAngle extends TextComponent with HasGameRef<MyGame> {
-  int currentAngle = 0;
+  double currentAngle = 0;
 
   // if length of force is more than 15px, then show the angle
   int visibleNumber = 15;
@@ -185,109 +190,25 @@ class DigitsAngle extends TextComponent with HasGameRef<MyGame> {
     }
   }
 
-  (bool, int) getPushAngle() {
+  bool setPushAngle() {
     // Ox = true => positive projection of Push is positive
-    int val =
-        gameRef.vectorForce.vector.angleTo(Vector2(1, 0)) * 360 ~/ (2 * pi);
-    bool Ox = val < 90;
-    return (Ox, Ox ? val : 180 - val);
+    currentAngle = gameRef.vectorForce.vector.angleTo(Vector2(1, 0));
+    int degrees = currentAngle * 360 ~/ (2 * pi);
+    bool Ox = degrees < 90;
+    if (!Ox) {
+      degrees = 180 - degrees;
+    }
+    text = degrees.toString() + '°';
+    return Ox;
   }
 
   @override
   void update(double dt) {
-    var (Ox, angleNumber) = getPushAngle();
-    currentAngle = angleNumber;
+    bool Ox = setPushAngle();
     position = gameRef.ball.position +
         Vector2(0, -5) +
         Vector2(27, 0).scaled(Ox ? 1 : -1);
-    text = angleNumber.toString() + '°';
   }
 
   DigitsAngle() : super(anchor: Anchor.center);
-}
-
-class PhysicalQuantity extends TextComponent {
-  double storedValue = 0;
-
-  PhysicalQuantity({required super.position})
-      : super(anchor: Anchor.centerLeft) {
-    updateField(0);
-  }
-
-  String getTextWithValue(double value) {
-    throw ArgumentError("method is not implemented", "TextValue");
-  }
-
-  void updateField(double value, {bool remember = false}) {
-    text = getTextWithValue(value);
-  }
-}
-
-class LaunchSpeed extends PhysicalQuantity {
-  LaunchSpeed({required super.position});
-
-  @override
-  String getTextWithValue(double value) {
-    return "Launch speed: ${value.toStringAsFixed(WorldConfig.valuePrecision)} m/s";
-  }
-}
-
-class ActualDistance extends PhysicalQuantity with HasGameRef<MyGame> {
-  ActualDistance({required super.position});
-
-  double startX = 0;
-
-  @override
-  void update(double dt) {
-    super.updateField((gameRef.ballEngine.position.x - startX).abs());
-    super.update(dt);
-  }
-
-  @override
-  String getTextWithValue(double value) {
-    return "Absolute distance: ${value.toStringAsFixed(WorldConfig.valuePrecision)} meters";
-  }
-}
-
-class FlightDistance extends PhysicalQuantity with HasGameRef<MyGame> {
-  FlightDistance({required super.position});
-
-  bool landed = false;
-
-  @override
-  void update(double dt) {
-    if (!landed) {
-      super.updateField(
-          (gameRef.ballEngine.position.x - gameRef.actualDistance.startX));
-      super.update(dt);
-    }
-  }
-
-  @override
-  String getTextWithValue(double value) {
-    return "Flight distance: ${value.toStringAsFixed(WorldConfig.valuePrecision)} meters";
-  }
-}
-
-class TheoreticalDistance extends PhysicalQuantity with HasGameRef<MyGame> {
-  bool visible = true;
-
-  TheoreticalDistance({required super.position});
-
-  void predict(mass, start_speed, alpha) {
-    super.updateField(
-        gameRef.engine.predictLinearValueLength(mass, start_speed, alpha));
-  }
-
-  @override
-  void render(Canvas canvas) {
-    if (visible) {
-      super.render(canvas);
-    }
-  }
-
-  @override
-  String getTextWithValue(double value) {
-    return "Flight theoretical distance:\n ${value.toStringAsFixed(WorldConfig.valuePrecision)} meters";
-  }
 }

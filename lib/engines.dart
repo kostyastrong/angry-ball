@@ -48,18 +48,23 @@ class BallEngine extends Component with HasGameRef<MyGame> {
     if (position.y > 0) {
       speed += force.scaled(1 / mass) * dt;
     }
-    // print(speed);
     movePosition(speed.scaled(dt));
     super.update(dt);
   }
 }
 
 class ForceEngine {
-  final double linear;
+  late final double linear;
   final double quadratic;
   final Vector2 g = Vector2(0, -9.81).scaled(WorldConfig.meter);
 
-  ForceEngine({this.linear = 0, this.quadratic = 0});
+  ForceEngine({double linear = 0, this.quadratic = 0}) {
+    if (linear <= 0) {
+      this.linear = 0.00001;
+    } else {
+      this.linear = linear;
+    }
+  }
 
   Vector2 getForceQuadratic(Vector2 speed, double mass) {
     return g.scaled(mass) - speed.scaled(quadratic * speed.length);
@@ -98,11 +103,12 @@ class ForceEngine {
     return (mass * start_x_speed * (1 - exp(-(beta * t) / mass))) / beta;
   }
 
+  // to calculateLength distance with non-zero
   double predictLinearValueLength(
       double mass, double start_x_speed, double start_y_speed) {
     // alpha in degrees
 
-    if (mass < 0 || this.linear <= 0) {
+    if (mass < 0 || this.linear < 0) {
       return 0;
     }
     double l_bound = 0,
@@ -117,7 +123,6 @@ class ForceEngine {
         l_bound = time;
       }
     }
-    // print("Flight time: ${l_bound}");
     return linearValueLength(l_bound, mass, start_x_speed);
   }
 }

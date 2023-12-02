@@ -9,7 +9,7 @@ class WorldConfig {
   static const double groundScale = 140.0;
 
   // mass in kg
-  static const double ballMass = 1.0;
+  static const double ballMass = 4.0;
 
   // max ball speed
   static const double ballMaxSpeed = 10 * meter;
