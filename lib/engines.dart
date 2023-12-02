@@ -27,6 +27,7 @@ class BallEngine extends Component with HasGameRef<MyGame> {
     speed.y = -speed.y * 0.6;
     speed.x =
         speed.x * (1 - gameRef.engine.g.length * WorldConfig.frictionCoef);
+    gameRef.flightDistance.landed = true;
   }
 
   void movePosition(Vector2 vector) {
@@ -58,7 +59,7 @@ class ForceEngine {
   final double quadratic;
   final Vector2 g = Vector2(0, -9.81).scaled(WorldConfig.meter);
 
-  ForceEngine({required this.linear, required this.quadratic});
+  ForceEngine({this.linear = 0, this.quadratic = 0});
 
   Vector2 getForceQuadratic(Vector2 speed, double mass) {
     return g.scaled(mass) - speed.scaled(quadratic * speed.length);
@@ -84,12 +85,11 @@ class ForceEngine {
   // y(t) = (m(g(m(-e^{(-(βt)/m)})+m-βt)+βu(1-e^{(-(βt)/m)})))/β^{2} - height from time
   double linearValueHeight(double t, double mass, double start_y_speed) {
     double beta = this.linear;
-    double gravity = g.y.abs(); // gravity is negative in formassula already
+    double gravity = g.y.abs(); // gravity is negative in formula already
     return (mass *
-        (gravity *
-            (mass * (-exp(-(beta * t) / mass) + mass - beta * t) +
+            (gravity * (mass * (-exp(-(beta * t) / mass)) + mass - beta * t) +
                 beta * start_y_speed * (1 - exp(-(beta * t) / mass)))) /
-        (beta * beta));
+        (beta * beta);
   }
 
   // x(t)=(mu(1-e^(-(βt)/m)))/β, u is start x speed
@@ -99,15 +99,12 @@ class ForceEngine {
   }
 
   double predictLinearValueLength(
-      double mass, double start_speed, double alpha) {
+      double mass, double start_x_speed, double start_y_speed) {
     // alpha in degrees
-    alpha = alpha / (2 * pi);
 
-    if (mass < 0 || this.linear < 0) {
+    if (mass < 0 || this.linear <= 0) {
       return 0;
     }
-    double start_y_speed = start_speed * sin(alpha);
-    double start_x_speed = start_speed * cos(alpha);
     double l_bound = 0,
         r_bound = 10; // max_flight_seconds  todo: change to world config
     for (int i = 0; i < 50; ++i) {
@@ -120,6 +117,7 @@ class ForceEngine {
         l_bound = time;
       }
     }
+    // print("Flight time: ${l_bound}");
     return linearValueLength(l_bound, mass, start_x_speed);
   }
 }

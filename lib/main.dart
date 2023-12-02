@@ -43,6 +43,7 @@ class MyGame extends FlameGame with DragCallbacks {
   late LaunchSpeed launchSpeed;
   late ActualDistance actualDistance;
   late TheoreticalDistance theoreticalDistance;
+  late FlightDistance flightDistance;
 
   @override
   Future<void> onLoad() async {
@@ -59,13 +60,16 @@ class MyGame extends FlameGame with DragCallbacks {
     launchSpeed = LaunchSpeed(position: Vector2(size.x * 0.1, size.y * 0.5));
     actualDistance =
         ActualDistance(position: Vector2(size.x * 0.1, size.y * 0.6));
+    flightDistance =
+        FlightDistance(position: Vector2(size.x * 0.1, size.y * 0.7));
     theoreticalDistance =
-        TheoreticalDistance(position: Vector2(size.x * 0.1, size.y * 0.7));
+        TheoreticalDistance(position: Vector2(size.x * 0.1, size.y * 0.8));
 
     add(ballEngine);
     add(ball);
     add(launchSpeed);
     add(actualDistance);
+    add(flightDistance);
     add(theoreticalDistance);
     await add(Ground(
         thickness: groundWidth, screen: size, ballRadius: ballRadius / 2));
@@ -93,8 +97,7 @@ class MyGame extends FlameGame with DragCallbacks {
     // we don't reverse y because endPosition.y > startPosition.y
     initSpeed.x = -initSpeed.x;
     launchSpeed.updateField(initSpeed.length);
-    theoreticalDistance.predict(
-        ballEngine.mass, initSpeed.length, digitsAngle.currentAngle.toDouble());
+    theoreticalDistance.predict(ballEngine.mass, initSpeed.x, initSpeed.y);
   }
 
   @override
@@ -107,6 +110,7 @@ class MyGame extends FlameGame with DragCallbacks {
     print(initSpeed.length);
     ballEngine.speed = initSpeed;
     vectorForce.visible = false;
+    flightDistance.landed = false;
     super.onDragEnd(event);
   }
 }
@@ -241,12 +245,32 @@ class ActualDistance extends PhysicalQuantity with HasGameRef<MyGame> {
 
   @override
   String getTextWithValue(double value) {
-    return "Distance: ${value.toStringAsFixed(WorldConfig.valuePrecision)} meters";
+    return "Absolute distance: ${value.toStringAsFixed(WorldConfig.valuePrecision)} meters";
+  }
+}
+
+class FlightDistance extends PhysicalQuantity with HasGameRef<MyGame> {
+  FlightDistance({required super.position});
+
+  bool landed = false;
+
+  @override
+  void update(double dt) {
+    if (!landed) {
+      super.updateField(
+          (gameRef.ballEngine.position.x - gameRef.actualDistance.startX));
+      super.update(dt);
+    }
+  }
+
+  @override
+  String getTextWithValue(double value) {
+    return "Flight distance: ${value.toStringAsFixed(WorldConfig.valuePrecision)} meters";
   }
 }
 
 class TheoreticalDistance extends PhysicalQuantity with HasGameRef<MyGame> {
-  bool visible = false;
+  bool visible = true;
 
   TheoreticalDistance({required super.position});
 
@@ -264,6 +288,6 @@ class TheoreticalDistance extends PhysicalQuantity with HasGameRef<MyGame> {
 
   @override
   String getTextWithValue(double value) {
-    return "Theoretical distance before the first bump:\n ${value.toStringAsFixed(WorldConfig.valuePrecision)} meters";
+    return "Flight theoretical distance:\n ${value.toStringAsFixed(WorldConfig.valuePrecision)} meters";
   }
 }
