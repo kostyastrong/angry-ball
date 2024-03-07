@@ -5,6 +5,8 @@ class WorldConfig {
   // to set centimeter, put 100.0, to set feet, put 0.3048 and etc
   static const double meter = 1.0;
 
+  static const double stopMoving = 0.00003;
+
   // to have bigger impact on screen
   static const double groundScale = 140.0;
 
@@ -14,11 +16,14 @@ class WorldConfig {
   // max ball speed
   static const double ballMaxSpeed = 10 * meter;
 
+  // elastic bounce of ball [0, 1], if 1, then no energy is spent and 0 is zero bounce
+  static const double ballBounceCoefY = 0.7;
+
   // number of digits after a point
   static const int valuePrecision = 2;
 
   // friction
-  static const double frictionCoef = 0.003;
+  static const double rollingFrictionCoef = 0.003;
 }
 
 class Ground extends PositionComponent {

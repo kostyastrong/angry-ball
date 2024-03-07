@@ -7,6 +7,7 @@ import 'main.dart';
 
 class BallEngine extends Component with HasGameRef<MyGame> {
   Vector2 speed = Vector2.zero();
+  double angularSpeed = 0; // positive is clockwise
   Vector2 position = Vector2.zero(); // position in real life
   final double mass;
   int k = 0;
@@ -18,21 +19,33 @@ class BallEngine extends Component with HasGameRef<MyGame> {
     position = Vector2.zero();
   }
 
+  // collapsing with ground is explained here:
+  // https://iopscience.iop.org/article/10.1088/0031-9120/50/3/335/meta#ped510478f02
   void groundCollapse(
     Vector2 direction,
   ) {
+    if (speed.y.abs() < WorldConfig.stopMoving) {
+      speed.y = 0;
+    }
+    if (speed.x.abs() < WorldConfig.stopMoving) {
+      speed.x = 0;
+    }
+    if (speed.x == 0 && speed.y == 0) {
+      return;
+    }
     double coefX = -position.y / direction.y;
     position.y = 0;
     position.x = position.x + direction.x * coefX;
-    speed.y = -speed.y * 0.6;
-    speed.x =
-        speed.x * (1 - gameRef.engine.g.length * WorldConfig.frictionCoef);
+    speed.y = -speed.y * WorldConfig.ballBounceCoefY;
+    speed.x = speed.x *
+        (1 - gameRef.engine.g.length * WorldConfig.rollingFrictionCoef);
     gameRef.flightDistance.landed = true;
   }
 
   void movePosition(Vector2 vector) {
+    /// True <=> no collapsing with ground
     bool valid = true;
-    if (position.y + vector.y < 0) {
+    if (position.y + vector.y < WorldConfig.stopMoving) {
       groundCollapse(vector);
       valid = false;
     }

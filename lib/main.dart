@@ -38,7 +38,9 @@ class MyGame extends FlameGame with DragCallbacks {
   late final VectorForce vectorForce;
   late final DigitsAngle digitsAngle;
   late final BallEngine ballEngine = BallEngine(mass: WorldConfig.ballMass);
-  final ForceEngine engine = ForceEngine(linear: 3, quadratic: 0);
+
+  // Value 8 for noticing simulation, 2-3 for fun:)
+  final ForceEngine engine = ForceEngine(linear: 2, quadratic: 0);
   late Vector2 startPosition;
   late Vector2 endPosition;
   late LaunchSpeed launchSpeed;
